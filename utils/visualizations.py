@@ -221,9 +221,6 @@ def generate_treemap(file_path, field):
         df['count'] = df['count'].astype(int)
         df['percentage'] = df['percentage'].astype(float)
         
-        # Add a text column that combines value and count for better display
-        df['display_text'] = df['value'] + '<br>Count: ' + df['count'].astype(str)
-        
         # Create treemap with plotly - use a simple approach to avoid aggregation problems
         fig = px.treemap(
             df,
@@ -234,6 +231,12 @@ def generate_treemap(file_path, field):
             hover_data=['count', 'percentage'],
             color='value',  # Color by category value (creates discrete colors)
             color_discrete_sequence=px.colors.qualitative.Bold  # Use a bold, high-contrast color scheme
+        )
+        
+        # Update text to show both value and count
+        fig.update_traces(
+            textinfo='label+value',
+            hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{customdata[1]:.2f}%'
         )
         
         # Update layout for better appearance
