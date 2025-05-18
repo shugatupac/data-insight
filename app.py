@@ -92,8 +92,12 @@ def upload_file():
         flash('File type not allowed. Please upload .xlsx, .xls, or .csv files.', 'error')
         return redirect(url_for('index'))
 
-@app.route('/analyze', methods=['POST'])
+@app.route('/analyze', methods=['POST', 'GET'])
 def analyze():
+    if request.method == 'GET':
+        # For GET requests, just render the analysis page
+        return redirect(url_for('index'))
+        
     try:
         data = request.get_json()
         logger.debug(f"Received data: {data}")
@@ -136,36 +140,51 @@ def analyze():
         logger.exception("Full traceback:")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/export', methods=['POST'])
+@app.route('/export', methods=['POST', 'GET'])
 def export():
+    if request.method == 'GET':
+        # For GET requests, just redirect to the index
+        return redirect(url_for('index'))
+        
     try:
         data = request.get_json()
+        logger.debug(f"Export request data: {data}")
+        
         export_type = data.get('export_type')
         fields = data.get('fields', [])
         visualizations = data.get('visualizations', [])
         
         if not export_type or not fields or not visualizations:
+            logger.error("Missing required export parameters")
             return jsonify({'error': 'Export type, fields, and visualizations are required'}), 400
         
         # Get the file path from session
         file_path = session.get('uploaded_file_path')
+        logger.debug(f"Export using file path: {file_path}")
+        
         if not file_path or not os.path.exists(file_path):
+            logger.error(f"File not found for export: {file_path}")
             return jsonify({'error': 'No file uploaded or file not found'}), 400
         
         # Export based on selected type
         if export_type == 'pdf':
+            logger.debug("Exporting to PDF")
             output_path = export_to_pdf(file_path, fields, visualizations)
         elif export_type == 'excel':
+            logger.debug("Exporting to Excel")
             output_path = export_to_excel(file_path, fields, visualizations)
         else:
+            logger.error(f"Invalid export type: {export_type}")
             return jsonify({'error': 'Invalid export type'}), 400
         
         # Generate a download URL
         download_url = url_for('download_file', filename=os.path.basename(output_path), _external=True)
+        logger.debug(f"Generated download URL: {download_url}")
         return jsonify({'download_url': download_url})
     
     except Exception as e:
         logger.error(f"Error in export: {str(e)}")
+        logger.exception("Full export error traceback:")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/download/<filename>')
