@@ -1,0 +1,108 @@
+/* Custom styles for Excel Data Analyzer */
+
+/* Card styling */
+.card {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Table styling */
+.table-responsive {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Plot container styling */
+.plot-container {
+    width: 100%;
+    min-height: 300px;
+}
+
+/* File upload area styling */
+input[type="file"] {
+    padding: 10px;
+    background-color: var(--bs-dark);
+    border-radius: 4px;
+    border: 1px dashed var(--bs-info);
+}
+
+/* Button effects */
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom checkbox styling */
+.form-check-input:checked {
+    background-color: var(--bs-info);
+    border-color: var(--bs-info);
+}
+
+/* Custom select styling */
+.form-select {
+    border-color: var(--bs-gray-600);
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+/* Loading spinner */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .col-md-6 {
+        margin-bottom: 20px;
+    }
+}
+
+/* Footer styling */
+footer {
+    margin-top: auto;
+    border-top: 1px solid var(--bs-gray-800);
+}
+
+/* Error messages */
+.alert-danger {
+    background-color: rgba(var(--bs-danger-rgb), 0.1);
+    border-color: var(--bs-danger);
+    color: var(--bs-danger);
+}
+
+/* Success messages */
+.alert-success {
+    background-color: rgba(var(--bs-success-rgb), 0.1);
+    border-color: var(--bs-success);
+    color: var(--bs-success);
+}
+
+/* Download modal styling */
+.modal-content {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+    border-radius: 8px;
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--bs-gray-800);
+}
+
+.modal-footer {
+    border-top: 1px solid var(--bs-gray-800);
+}
+
+.text-success {
+    color: var(--bs-success) !important;
+}

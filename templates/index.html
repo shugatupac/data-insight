@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title mb-0">
+                    <i class="fas fa-upload me-2"></i>
+                    Upload Excel File
+                </h2>
+            </div>
+            <div class="card-body">
+                {% if not preview_data %}
+                <form id="uploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select an Excel file (.xlsx, .xls) or CSV file:</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls,.csv" required>
+                    </div>
+                    <div class="mb-3 small text-muted">
+                        <i class="fas fa-info-circle me-1"></i> Maximum file size: 10MB
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>
+                        Upload & Preview
+                    </button>
+                </form>
+                {% else %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Data Preview: <span class="text-info">{{ filename }}</span></h3>
+                    <button id="resetBtn" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo me-1"></i> Upload New File
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                {% for column in columns %}
+                                <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preview_data %}
+                            <tr>
+                                {% for column in columns %}
+                                <td>{{ row[column] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if preview_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Select Fields for Analysis
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="analysisField" class="form-label">Select a field to analyze:</label>
+                    <select id="analysisField" class="form-select">
+                        <option value="">-- Select Field --</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}" data-type="{{ column_types[column] }}">
+                            {{ column }} ({{ column_types[column] }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label d-block">Select visualization methods:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="freqTableCheck" value="frequency_table">
+                        <label class="form-check-label" for="freqTableCheck">
+                            <i class="fas fa-table me-1"></i> Frequency Table
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="pieChartCheck" value="pie_chart">
+                        <label class="form-check-label" for="pieChartCheck">
+                            <i class="fas fa-chart-pie me-1"></i> Pie Chart
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="barChartCheck" value="bar_chart">
+                        <label class="form-check-label" for="barChartCheck">
+                            <i class="fas fa-chart-bar me-1"></i> Bar Chart
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="treemapCheck" value="treemap">
+                        <label class="form-check-label" for="treemapCheck">
+                            <i class="fas fa-th-large me-1"></i> Treemap
+                        </label>
+                    </div>
+                </div>
+                <button id="generateBtn" class="btn btn-primary" disabled>
+                    <i class="fas fa-magic me-2"></i>
+                    Generate Visualizations
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="visualizationsContainer" class="row mb-4" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Analysis Results
+                </h2>
+                <div>
+                    <button id="exportPdfBtn" class="btn btn-outline-info me-2">
+                        <i class="fas fa-file-pdf me-1"></i> Export to PDF
+                    </button>
+                    <button id="exportExcelBtn" class="btn btn-outline-success">
+                        <i class="fas fa-file-excel me-1"></i> Export to Excel
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="loadingVisualizations" class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Generating visualizations...</p>
+                </div>
+                
+                <div id="visualizationResults" class="row">
+                    <!-- Visualization results will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Processing Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Exporting Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Preparing your export file...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Download Ready Modal -->
+<div class="modal fade" id="downloadModal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="downloadModalLabel">Export Complete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle text-success" style="font-size: 48px;"></i>
+                </div>
+                <p>Your export file is ready!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="downloadLink" href="#" class="btn btn-primary">
+                    <i class="fas fa-download me-1"></i> Download File
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // This script will initialize the JavaScript interactions
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('visualizationsContainer')) {
+            initializeAnalysisPage();
+        }
+    });
+</script>
+{% endblock %}
