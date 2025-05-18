@@ -219,8 +219,8 @@ def generate_treemap(file_path, field):
             title=f'Treemap of {field}',
             template='plotly_dark',
             hover_data=['value', 'count', 'percentage'],
-            color='count',  # Add coloring based on count
-            color_continuous_scale='RdBu'
+            color='value',  # Color by category value (creates discrete colors)
+            color_discrete_sequence=px.colors.qualitative.Bold  # Use a bold, high-contrast color scheme
         )
         
         # Update layout for better appearance
