@@ -11,7 +11,9 @@ const appState = {
     exportConfig: {
         fields: [],
         visualizations: []
-    }
+    },
+    filters: {},
+    activeFilters: {}
 };
 
 /**
@@ -36,6 +38,9 @@ function initializeAnalysisPage() {
     document.getElementById('exportExcelBtn').addEventListener('click', () => {
         exportResults('excel');
     });
+    
+    // Initialize data filtering functionality
+    initializeFilteringUI();
 }
 
 /**

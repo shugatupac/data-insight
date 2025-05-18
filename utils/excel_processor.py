@@ -41,13 +41,14 @@ def validate_excel_file(file_path):
             'message': f'Error reading file: {str(e)}'
         }
 
-def process_excel(file_path, preview_rows=10):
+def process_excel(file_path, preview_rows=10, filters=None):
     """
-    Process an Excel file to extract data for preview.
+    Process an Excel file to extract data for preview with optional filtering.
     
     Args:
         file_path (str): Path to the Excel file
         preview_rows (int): Number of rows to return for preview
+        filters (dict, optional): Dictionary of filters to apply {column: value}
         
     Returns:
         tuple: (preview_data, columns) where preview_data is a list of dictionaries
@@ -63,10 +64,26 @@ def process_excel(file_path, preview_rows=10):
         # Get columns
         columns = df.columns.tolist()
         
+        # Apply filters if provided
+        if filters and isinstance(filters, dict):
+            for column, filter_value in filters.items():
+                if column in df.columns:
+                    if isinstance(filter_value, dict):
+                        # Handle range filters
+                        if 'min' in filter_value and pd.api.types.is_numeric_dtype(df[column]):
+                            df = df[df[column] >= filter_value['min']]
+                        if 'max' in filter_value and pd.api.types.is_numeric_dtype(df[column]):
+                            df = df[df[column] <= filter_value['max']]
+                        if 'contains' in filter_value:
+                            df = df[df[column].astype(str).str.contains(filter_value['contains'], case=False, na=False)]
+                    else:
+                        # Simple equality filter
+                        df = df[df[column].astype(str) == str(filter_value)]
+        
         # Convert to list of dictionaries for preview (limit rows)
         preview_data = df.head(preview_rows).replace({np.nan: None}).to_dict('records')
         
-        return preview_data, columns
+        return preview_data, columns, len(df)
     
     except Exception as e:
         logger.error(f"Error processing Excel file: {str(e)}")

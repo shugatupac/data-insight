@@ -64,6 +64,90 @@
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Data Filtering
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-2">
+                            <i class="fas fa-info-circle me-1 text-info"></i>
+                            Total rows in dataset: <span id="totalRowsCount" class="badge bg-info">{{ total_rows }}</span>
+                        </p>
+                        <div class="mb-3">
+                            <label for="filterField" class="form-label">Select a field to filter:</label>
+                            <select id="filterField" class="form-select">
+                                <option value="">-- Select Field --</option>
+                                {% for column in columns %}
+                                <option value="{{ column }}" data-type="{{ column_types[column] }}">
+                                    {{ column }} ({{ column_types[column] }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div id="filterOptionsContainer" class="mb-3 mt-4" style="display: none;">
+                            <!-- Numeric filter options -->
+                            <div id="numericFilterOptions" style="display: none;">
+                                <div class="row">
+                                    <div class="col">
+                                        <label for="minValue" class="form-label">Minimum:</label>
+                                        <input type="number" class="form-control" id="minValue">
+                                    </div>
+                                    <div class="col">
+                                        <label for="maxValue" class="form-label">Maximum:</label>
+                                        <input type="number" class="form-control" id="maxValue">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Text filter options -->
+                            <div id="textFilterOptions" style="display: none;">
+                                <label for="textContains" class="form-label">Contains text:</label>
+                                <input type="text" class="form-control" id="textContains">
+                            </div>
+                            
+                            <!-- Categorical filter options -->
+                            <div id="categoricalFilterOptions" style="display: none;">
+                                <label for="categoricalValue" class="form-label">Exact match:</label>
+                                <input type="text" class="form-control" id="categoricalValue">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <button id="applyFilterBtn" class="btn btn-outline-info me-2" disabled>
+                            <i class="fas fa-filter me-1"></i> Apply Filter
+                        </button>
+                        <button id="resetFiltersBtn" class="btn btn-outline-secondary" disabled>
+                            <i class="fas fa-undo me-1"></i> Reset Filters
+                        </button>
+                    </div>
+                    <div>
+                        <span id="activeFiltersCount" class="badge bg-info me-2" style="display: none;">0 active filters</span>
+                    </div>
+                </div>
+                
+                <div id="activeFiltersContainer" class="mt-3" style="display: none;">
+                    <h6><i class="fas fa-tags me-1"></i> Active Filters:</h6>
+                    <div id="activeFiltersList" class="d-flex flex-wrap gap-2">
+                        <!-- Active filters will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title mb-0">
                     <i class="fas fa-chart-bar me-2"></i>
                     Select Fields for Analysis
                 </h2>

@@ -31,6 +31,42 @@ def allowed_file(filename):
 def index():
     return render_template('index.html')
 
+@app.route('/filter', methods=['POST', 'GET'])
+def filter_data():
+    if request.method == 'GET':
+        return redirect(url_for('index'))
+        
+    try:
+        data = request.get_json()
+        logger.debug(f"Received filter data: {data}")
+        
+        filters = data.get('filters', {})
+        
+        # Get the file path from session
+        file_path = session.get('uploaded_file_path')
+        if not file_path or not os.path.exists(file_path):
+            return jsonify({'error': 'No file uploaded or file not found'}), 400
+        
+        # Apply filters and get preview data
+        preview_data, columns, total_rows = process_excel(file_path, preview_rows=10, filters=filters)
+        
+        # Store filtered data in session
+        session['active_filters'] = filters
+        session['filtered_preview_data'] = json.dumps(preview_data)
+        session['filtered_total_rows'] = total_rows
+        
+        # Return filtered data
+        return jsonify({
+            'preview_data': preview_data,
+            'total_rows': total_rows,
+            'message': f'Filtered data contains {total_rows} rows'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error filtering data: {str(e)}")
+        logger.exception("Full filter error traceback:")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     # Check if the post request has the file part
@@ -69,20 +105,22 @@ def upload_file():
                 return redirect(url_for('index'))
             
             # Process the Excel file to get preview data
-            preview_data, columns = process_excel(file_path, preview_rows=10)
+            preview_data, columns, total_rows = process_excel(file_path, preview_rows=10)
             column_types = get_column_types(file_path)
             
             # Store data in session
             session['preview_data'] = json.dumps(preview_data)
             session['columns'] = columns
             session['column_types'] = column_types
+            session['total_rows'] = total_rows
             
             # Return success with data
             return render_template('index.html', 
                                   preview_data=preview_data,
                                   columns=columns,
                                   column_types=column_types,
-                                  filename=filename)
+                                  filename=filename,
+                                  total_rows=total_rows)
         
         except Exception as e:
             logger.error(f"Error processing file: {str(e)}")
