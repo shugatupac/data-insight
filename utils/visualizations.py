@@ -208,13 +208,19 @@ def generate_treemap(file_path, field):
         # Create a DataFrame for the treemap
         df = pd.DataFrame(frequency_data)
         
+        # Add a text column that combines value and count for better display
+        df['display_text'] = df['value'].astype(str) + '<br>Count: ' + df['count'].astype(str)
+        
         # Create treemap with plotly
         fig = px.treemap(
             df,
-            path=[pd.Series(['Root'] * len(df)), 'value'],
+            path=[pd.Series(['Root'] * len(df)), 'display_text'],
             values='count',
             title=f'Treemap of {field}',
-            template='plotly_dark'
+            template='plotly_dark',
+            hover_data=['value', 'count', 'percentage'],
+            color='count',  # Add coloring based on count
+            color_continuous_scale='RdBu'
         )
         
         # Update layout for better appearance
