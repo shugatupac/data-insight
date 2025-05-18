@@ -264,12 +264,23 @@ function displayVisualizations(visualizationsData) {
             
             // Create table body
             const tbody = document.createElement('tbody');
-            for (const row of vizData.data) {
+            
+            // Check if we have data
+            if (vizData.data && vizData.data.length > 0) {
+                for (const row of vizData.data) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.value}</td>
+                        <td>${row.count}</td>
+                        <td>${row.percentage}%</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            } else {
+                // No data message
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${row.value}</td>
-                    <td>${row.count}</td>
-                    <td>${row.percentage}%</td>
+                    <td colspan="3" class="text-center">No data available for this selection</td>
                 `;
                 tbody.appendChild(tr);
             }
@@ -280,18 +291,48 @@ function displayVisualizations(visualizationsData) {
             cardBody.appendChild(tableContainer);
             
         } else {
-            // For charts, create a div for plotly
-            const plotDiv = document.createElement('div');
-            plotDiv.className = 'plot-container';
-            plotDiv.style.height = '400px';
-            plotDiv.id = `plot-${vizType}-${Date.now()}`;
-            
-            cardBody.appendChild(plotDiv);
-            
-            // Defer the plot creation until after the container is added to the DOM
-            setTimeout(() => {
-                Plotly.newPlot(plotDiv.id, vizData.data.data, vizData.data.layout || {});
-            }, 0);
+            // Check if there's an error message
+            if (vizData.error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-warning';
+                errorDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${vizData.error}
+                `;
+                cardBody.appendChild(errorDiv);
+            } else if (vizData.data && vizData.data.data) {
+                // For charts, create a div for plotly
+                const plotDiv = document.createElement('div');
+                plotDiv.className = 'plot-container';
+                plotDiv.style.height = '400px';
+                plotDiv.id = `plot-${vizType}-${Date.now()}`;
+                
+                cardBody.appendChild(plotDiv);
+                
+                // Defer the plot creation until after the container is added to the DOM
+                setTimeout(() => {
+                    try {
+                        Plotly.newPlot(plotDiv.id, vizData.data.data, vizData.data.layout || {});
+                    } catch (e) {
+                        console.error(`Error plotting ${vizType}:`, e);
+                        plotDiv.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Error displaying visualization
+                            </div>
+                        `;
+                    }
+                }, 0);
+            } else {
+                // No data available
+                const noDataDiv = document.createElement('div');
+                noDataDiv.className = 'alert alert-info';
+                noDataDiv.innerHTML = `
+                    <i class="fas fa-info-circle me-2"></i>
+                    No data available for this visualization
+                `;
+                cardBody.appendChild(noDataDiv);
+            }
         }
         
         // Assemble the card

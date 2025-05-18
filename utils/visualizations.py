@@ -205,20 +205,33 @@ def generate_treemap(file_path, field):
         # Get frequency data
         frequency_data = get_frequency_table(file_path, field)
         
+        # If no data or empty frequency table, return a simple message
+        if not frequency_data:
+            return {
+                'type': 'treemap',
+                'field': field,
+                'error': 'No data available for treemap visualization'
+            }
+        
         # Create a DataFrame for the treemap
         df = pd.DataFrame(frequency_data)
         
-        # Add a text column that combines value and count for better display
-        df['display_text'] = df['value'].astype(str) + '<br>Count: ' + df['count'].astype(str)
+        # Make sure all columns are the correct type to avoid aggregation issues
+        df['value'] = df['value'].astype(str)
+        df['count'] = df['count'].astype(int)
+        df['percentage'] = df['percentage'].astype(float)
         
-        # Create treemap with plotly
+        # Add a text column that combines value and count for better display
+        df['display_text'] = df['value'] + '<br>Count: ' + df['count'].astype(str)
+        
+        # Create treemap with plotly - use a simple approach to avoid aggregation problems
         fig = px.treemap(
             df,
-            path=[pd.Series(['Root'] * len(df)), 'display_text'],
+            path=['value'],
             values='count',
             title=f'Treemap of {field}',
             template='plotly_dark',
-            hover_data=['value', 'count', 'percentage'],
+            hover_data=['count', 'percentage'],
             color='value',  # Color by category value (creates discrete colors)
             color_discrete_sequence=px.colors.qualitative.Bold  # Use a bold, high-contrast color scheme
         )
