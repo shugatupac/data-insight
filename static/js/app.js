@@ -135,7 +135,11 @@ function generateVisualizations() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            return response.json().then(data => {
+                throw new Error(data.error || 'Network response was not ok');
+            }).catch(err => {
+                throw new Error('Network response was not ok: ' + err.message);
+            });
         }
         return response.json();
     })

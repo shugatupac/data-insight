@@ -96,31 +96,44 @@ def upload_file():
 def analyze():
     try:
         data = request.get_json()
+        logger.debug(f"Received data: {data}")
+        
         field = data.get('field')
         visualization_types = data.get('visualization_types', [])
         
+        logger.debug(f"Field: {field}, Visualization Types: {visualization_types}")
+        
         if not field or not visualization_types:
+            logger.error("Field or visualization types missing")
             return jsonify({'error': 'Field and visualization types are required'}), 400
         
         # Get the file path from session
         file_path = session.get('uploaded_file_path')
+        logger.debug(f"File path from session: {file_path}")
+        
         if not file_path or not os.path.exists(file_path):
+            logger.error(f"File not found: {file_path}")
             return jsonify({'error': 'No file uploaded or file not found'}), 400
         
         # Generate visualizations
         results = {}
         for viz_type in visualization_types:
             try:
+                logger.debug(f"Generating {viz_type} visualization for field: {field}")
                 viz_data = generate_visualization(file_path, field, viz_type)
                 results[viz_type] = viz_data
+                logger.debug(f"Successfully generated {viz_type}")
             except Exception as e:
                 logger.error(f"Error generating {viz_type} visualization: {str(e)}")
+                logger.exception("Full traceback:")
                 results[viz_type] = {'error': str(e)}
         
+        logger.debug(f"Returning results for {len(results)} visualizations")
         return jsonify(results)
     
     except Exception as e:
         logger.error(f"Error in analyze: {str(e)}")
+        logger.exception("Full traceback:")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/export', methods=['POST'])
@@ -172,18 +185,11 @@ def download_file(filename):
     # Return the file for download
     return send_file(file_path, as_attachment=True)
 
-# Clean up temp files periodically
-@app.teardown_request
+# We will handle file cleanup explicitly instead of on every request
+# to prevent premature deletion of files needed for analysis
+@app.teardown_appcontext
 def cleanup_files(error):
-    if 'session_id' in session:
-        session_id = session.get('session_id')
-        # Clean up any files with this session ID
-        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-            if filename.startswith(session_id):
-                try:
-                    os.remove(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                except:
-                    pass
+    pass
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
