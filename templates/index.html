@@ -424,8 +424,8 @@
             // Prepare export data - format to match what the backend expects
             const exportData = {
                 export_type: exportType,
-                fields: [analysisField],  // Changed back to array as expected by backend
-                visualizations: visualizations  // Now sending objects with field and type
+                fields: [analysisField],
+                visualizations: visualizations
             };
             
             console.log('Sending export request:', exportData);
@@ -458,22 +458,49 @@
                 // Set download link
                 const downloadLink = document.getElementById('downloadLink');
                 
-                // Handle different response formats
+                // Clear any previous event listeners
+                const newDownloadLink = downloadLink.cloneNode(true);
+                downloadLink.parentNode.replaceChild(newDownloadLink, downloadLink);
+                
+                // Handle the download URL based on response format
+                let downloadUrl = '';
+                
                 if (data.download_url) {
-                    // Instead of using the download attribute, we'll directly navigate to the URL
-                    // This allows the server to set the proper content type headers
-                    downloadLink.href = data.download_url;
-                    downloadLink.removeAttribute('download');
-                    
-                    // Open in new tab to avoid navigation issues
-                    downloadLink.setAttribute('target', '_blank');
+                    downloadUrl = data.download_url;
                 } else if (data.file_id) {
-                    // For file_id based downloads, construct the URL with proper query parameters
-                    downloadLink.href = `/download/${data.file_id}?type=${exportType}`;
-                    downloadLink.removeAttribute('download');
-                    downloadLink.setAttribute('target', '_blank');
+                    downloadUrl = `/download/${data.file_id}?type=${exportType}`;
+                } else if (data.base64_content) {
+                    // For direct base64 content (no file storage)
+                    if (exportType === 'pdf') {
+                        // Create a data URL for PDF
+                        downloadUrl = `data:application/pdf;base64,${data.base64_content}`;
+                    } else {
+                        // Create a data URL for Excel
+                        downloadUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${data.base64_content}`;
+                    }
                 } else {
                     throw new Error('No download information provided by server');
+                }
+                
+                console.log('Download URL:', downloadUrl);
+                
+                if (exportType === 'pdf') {
+                    // For PDF files
+                    newDownloadLink.href = downloadUrl;
+                    newDownloadLink.setAttribute('target', '_blank');
+                    newDownloadLink.removeAttribute('download');
+                    
+                    // Add click event for PDF
+                    newDownloadLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.open(downloadUrl, '_blank');
+                        downloadModal.hide();
+                    });
+                } else {
+                    // For Excel files
+                    newDownloadLink.href = downloadUrl;
+                    const filename = `data_analysis_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    newDownloadLink.setAttribute('download', filename);
                 }
                 
                 downloadModal.show();

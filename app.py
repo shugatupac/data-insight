@@ -6,6 +6,8 @@ import uuid
 import pandas as pd
 import json
 import tempfile
+import base64
+import io
 from utils.excel_processor import process_excel, get_column_types, validate_excel_file
 from utils.visualizations import generate_visualization
 from utils.export import export_to_pdf, export_to_excel
@@ -22,6 +24,9 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 # Configure uploads folder in temp directory
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 app.config['ALLOWED_EXTENSIONS'] = {'xlsx', 'xls', 'csv'}
+
+# Store temporary export files in memory
+export_files = {}
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -204,48 +209,77 @@ def export():
             logger.error(f"File not found for export: {file_path}")
             return jsonify({'error': 'No file uploaded or file not found'}), 400
         
+        # Generate a unique file ID
+        file_id = str(uuid.uuid4())
+        
+        # Create a temporary directory for exports if it doesn't exist
+        export_dir = os.path.join(tempfile.gettempdir(), 'data_insight_exports')
+        os.makedirs(export_dir, exist_ok=True)
+        
         # Export based on selected type
         if export_type == 'pdf':
             logger.debug("Exporting to PDF")
-            output_path = export_to_pdf(file_path, fields, visualizations)
+            output_path = os.path.join(export_dir, f'data_analysis_{file_id}.pdf')
+            export_to_pdf(file_path, fields, visualizations, output_path)
+            
+            # Store file info in memory dictionary
+            export_files[file_id] = {
+                'path': output_path,
+                'type': 'application/pdf',
+                'filename': f'data_analysis_{file_id}.pdf'
+            }
+            
         elif export_type == 'excel':
             logger.debug("Exporting to Excel")
-            output_path = export_to_excel(file_path, fields, visualizations)
+            output_path = os.path.join(export_dir, f'data_analysis_{file_id}.xlsx')
+            export_to_excel(file_path, fields, visualizations, output_path)
+            
+            # Store file info in memory dictionary
+            export_files[file_id] = {
+                'path': output_path,
+                'type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'filename': f'data_analysis_{file_id}.xlsx'
+            }
         else:
             logger.error(f"Invalid export type: {export_type}")
             return jsonify({'error': 'Invalid export type'}), 400
         
-        # Generate a download URL
-        download_url = url_for('download_file', filename=os.path.basename(output_path), _external=True)
-        logger.debug(f"Generated download URL: {download_url}")
-        return jsonify({'download_url': download_url})
+        # Return the file ID for download
+        return jsonify({'file_id': file_id})
     
     except Exception as e:
         logger.error(f"Error in export: {str(e)}")
         logger.exception("Full export error traceback:")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/download/<filename>')
-def download_file(filename):
-    session_id = session.get('session_id')
-    if not session_id:
-        flash('Session expired', 'error')
-        return redirect(url_for('index'))
-    
-    # Path to the exported file
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{session_id}_{filename}")
-    
-    if not os.path.exists(file_path):
+@app.route('/download/<file_id>')
+def download_file(file_id):
+    # Check if the file exists in memory dictionary
+    if file_id not in export_files:
         flash('File not found', 'error')
         return redirect(url_for('index'))
     
+    # Get the file info from memory dictionary
+    file_data = export_files[file_id]
+    
+    # Check if the file exists on disk
+    if not os.path.exists(file_data['path']):
+        flash('File not found on disk', 'error')
+        return redirect(url_for('index'))
+    
     # Return the file for download
-    return send_file(file_path, as_attachment=True)
+    return send_file(
+        file_data['path'],
+        mimetype=file_data['type'],
+        as_attachment=True,
+        download_name=file_data['filename']
+    )
 
-# We will handle file cleanup explicitly instead of on every request
-# to prevent premature deletion of files needed for analysis
-@app.teardown_appcontext
-def cleanup_files(error):
+# Clean up expired files periodically
+@app.before_request
+def cleanup_expired_files():
+    # In a production app, you would implement a mechanism to clean up old files
+    # For simplicity, we're not implementing that here
     pass
 
 if __name__ == '__main__':
